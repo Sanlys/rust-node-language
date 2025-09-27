@@ -45,5 +45,5 @@ fn main() {
         },
     };
     let program = Program { last_node: add };
-    println!("{}", program.run());
+    println("{}", program.run());
 }
