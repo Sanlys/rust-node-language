@@ -1,3 +1,5 @@
+use std::{cell::OnceCell, rc::Rc};
+
 trait Node {
     type Output;
     fn execute(&self) -> Self::Output;
@@ -8,9 +10,17 @@ where
     A: Node<Output = i32>,
     B: Node<Output = i32>,
 {
-    a: A,
-    b: B,
+    a: Rc<A>,
+    b: Rc<B>,
+    result: OnceCell<i32>,
 }
+
+impl<A: Node<Output = i32>, B: Node<Output = i32>> Adder<A, B> {
+    fn new(a: Rc<A>, b: Rc<B>) -> Self {
+        Self { a, b, result: OnceCell::new() }
+    }
+}
+
 impl<A, B> Node for Adder<A, B>
 where
     A: Node<Output = i32>,
@@ -18,7 +28,8 @@ where
 {
     type Output = i32;
     fn execute(&self) -> i32 {
-        return self.a.execute()+self.b.execute()
+        println!("Computing something ;)");
+        *self.result.get_or_init(|| self.a.execute()+self.b.execute())
     }
 }
 
@@ -37,13 +48,11 @@ impl<N: Node> Program<N> {
 }
 
 fn main() {
-    let add = Adder {
-        a: Const(1),
-        b: Adder { 
-            a: Const(1), 
-            b: Const(2) 
-        },
-    };
+    let expensive_computation = Rc::new(Adder::new(
+        Rc::new(Const(50)),
+        Rc::new(Const(123123))
+    ));
+    let add = Adder::new(expensive_computation.clone(), expensive_computation.clone());
     let program = Program { last_node: add };
     println!("{}", program.run());
 }
